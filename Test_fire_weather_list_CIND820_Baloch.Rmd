@@ -1,0 +1,46 @@
+---
+title: "Test_fire_weather_list_CIND820_Baloch"
+author: "Baloch_Ali"
+date: "2023-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+
+Test_fire_weather <- read.csv("C:/Users/april/Downloads/fire_weather_list data from www.canadawildfire with descriptions_test.csv")
+
+summary(Test_fire_weather)
+dim(Test_fire_weather)
+head(Test_fire_weather)
+tail(Test_fire_weather)
+#View (Test_fire_weather)
+
+library(corrplot)
+library(RColorBrewer)
+M <-cor(Test_fire_weather)
+corrplot(M, type="upper", order="hclust", col=brewer.pal(n=8, name="RdYlBu"))
+
+library(corrplot)
+corrplot(M, order = 'hclust', addrect = 2)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+#plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
