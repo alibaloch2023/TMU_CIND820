@@ -1,0 +1,53 @@
+---
+title: "Random forest Cross validation"
+author: "Baloch_Ali"
+date: "2023-11-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+
+# Load the required library
+library(randomForest)
+
+# Set seed for reproducibility
+set.seed(123)
+
+data <- read.csv("C:/Users/april/Downloads/20230807_MODIS only1_revised_for_FINAL.csv")
+
+# Exclude columns
+excluded_columns <- c("Latitude1", "Longitude1", "Ref", "fuel")
+data <- data[, !(names(data) %in% excluded_columns)]
+
+# Convert response variable to factor
+data$Fire_Nofire <- as.factor(data$Fire_Nofire)
+
+
+# Perform k-fold cross-validation (say k = 5)
+cv_results <- randomForest(Fire_Nofire ~ ., data = data, ntree = 100, proximity = TRUE, importance = TRUE, cv.fold = 5)
+
+# Print the cross-validation results
+print(cv_results)
+plot(cv_results)
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

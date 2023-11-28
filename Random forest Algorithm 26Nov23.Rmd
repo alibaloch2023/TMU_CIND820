@@ -1,0 +1,75 @@
+---
+title: "Random forest"
+author: "Baloch_Ali"
+date: "2023-11-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+
+#install.packages("randomForest") 
+#*initially gave an error when knitting so subdued this code temporarily but run it once before knitting the file*
+
+library(randomForest)
+
+# Read your dataset
+
+wildfiredata2with3 = read.csv("C:/Users/april/Downloads/20230807_thousand_records_MODIS only2&3 combined.csv")
+
+
+# Exclude columns that are not needed for analysis
+excluded_columns <- c("Latitude1", "Longitude1", "Ref", "fuel")
+data <- wildfiredata2with3[, !(names(wildfiredata2with3) %in% excluded_columns)]
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Split the data into training and testing sets
+indices <- sample(1:nrow(data), size = 0.7 * nrow(data))
+train_data <- data[indices, ]
+test_data <- data[-indices, ]
+
+# Convert 'Fire_Nofire' to a factor
+train_data$Fire_Nofire <- as.factor(train_data$Fire_Nofire)
+
+# Train the Random Forest model
+rf_model <- randomForest(Fire_Nofire ~ ., data = train_data, ntree = 100)
+
+# Make predictions on the test set
+predictions <- predict(rf_model, newdata = test_data)
+
+# Confusion Matrix
+conf_matrix <- table(predictions, test_data$Fire_Nofire)
+
+# Accuracy
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat("Accuracy:", accuracy, "\n")
+
+# Precision
+precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+cat("Precision:", precision, "\n")
+
+# Recall
+recall <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+cat("Recall:", recall, "\n")
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

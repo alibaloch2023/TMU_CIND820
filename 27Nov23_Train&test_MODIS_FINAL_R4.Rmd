@@ -1,0 +1,156 @@
+---
+title: "27Nov23_Train&Test_MODIS_FINAL"
+author: "Baloch_Ali"
+date: "2023-11-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+#Step 1 loading data file different from the MODIS_NEW file for 6Nov23 data
+wildfiredata2with3 = read.csv("C:/Users/april/Downloads/20230807_thousand_records_MODIS only2&3 combined.csv")
+
+#Step 2: Preprocess Data and handle non-numeric variables, such as "fuel," by encoding. Since "fuel" is a categorical variable: # remove it or insert One-hot encode the 'fuel' column
+
+str(wildfiredata2with3)
+
+columns_to_remove <- c("latitude1", "longitude2", "ref..", "fuel"," estarea")
+clean_data <- wildfiredata2with3[, !names(wildfiredata2with3) %in% columns_to_remove]
+
+numeric_data <- clean_data[, sapply(clean_data, is.numeric)]
+boxplot(numeric_data)
+
+library(corrplot)
+correlation_matrix <- cor(numeric_data)
+corrplot(correlation_matrix, method = "color")
+
+wildfiredata2with3$fuel <- NULL  
+# Check to see the Removal the original 'fuel' column
+head(wildfiredata2with3)
+
+# Step 3: Split Data into Predictors (X) and Target Variable (Y)
+X <- wildfiredata2with3[, -1]  # Exclude the first column (target variable 'Fire_Nofire')
+Y <- wildfiredata2with3$Fire_Nofire
+
+# Step 4: Train the Model to Fit a logistic regression model
+model <- glm(Y ~ ., data = X, family = binomial)
+
+#Step 5: Construct Accuracy Function to calculate the accuracy of the model.  
+
+calculate_misclassification <- function(model, X, Y) {
+   predicted_probs <- predict(model, newdata = X, type = "response")
+   predicted_labels <- ifelse(predicted_probs > 0.5, 1, 0)
+   misclassification <- mean(predicted_labels != Y)
+   return(1 - misclassification)  # Accuracy
+}
+
+#Step 6: Cross-Validation and Evaluation
+#Perform k-fold cross-validation (5-fold) to evaluate the model's accuracy. 
+# Set the number of folds
+num_folds <- 5
+ 
+# Initialize a vector to store accuracy results
+accuracies <- numeric(num_folds)
+ 
+# Set a random seed for reproducibility
+set.seed(123)
+ 
+# Create indices for cross-validation folds
+cv_folds <- sample(1:num_folds, size = nrow(X), replace = TRUE)
+ 
+for (fold in 1:num_folds) {
+     # Split data into training and testing sets for this fold
+     X_train <- X[cv_folds != fold, ]
+     Y_train <- Y[cv_folds != fold]
+     X_test <- X[cv_folds == fold, ]
+     Y_test <- Y[cv_folds == fold]
+     
+     # Fit the model on the training set
+     model <- glm(Y_train ~ ., data = X_train, family = binomial)
+     
+     # Calculate accuracy on the test set for this fold
+     accuracies[fold] <- calculate_misclassification(model, X_test, Y_test)
+}
+ 
+# Calculate the mean accuracy across 5 folds
+mean_accuracy <- mean(accuracies)
+print(paste("Mean Accuracy:", mean_accuracy))
+
+plot(model)
+
+#multiple linear regression with max temp, soil temp & hfi only
+lm_model_2 <- lm(Fire_Nofire ~ Max.of.temperature + Max.of.soil_temperature + hfi,
+              data = clean_data)
+summary(lm_model_2)
+
+#multiple linear regression with more variables
+lm_model <- lm(Fire_Nofire ~ Max.of.temperature + Max.of.soil_temperature + Max.of.soil_moisture + fwi + ros + sfc + tfc + bfc + hfi + estarea,
+                data = clean_data)
+summary(lm_model)
+
+#based on 7 significant variables only which gives an overall better F-statistic & lower p-value
+#lm_model_final <- lm(Fire_Nofire ~ Max.of.soil_moisture + fwi + ros + sfc + tfc + hfi + estarea,
+#               data = clean_data)
+#summary(lm_model_final)
+
+
+#residual plot or get the residuals from the model
+residuals <- residuals(lm_model)
+
+# Create a residual plot
+plot(predict(lm_model), residuals, 
+     main = "Residual Plot",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+
+# Add a horizontal line at y = 0 for reference
+abline(h = 0, col = "red", lty = 2)
+
+lines(lowess(predict(lm_model), residuals), col = "blue")
+
+
+predictions <- predict(lm_model, newdata = clean_data)
+mse <- mean((clean_data$Fire_Nofire - predictions)^2)
+print(mse)
+
+predictions <- predict(lm_model_2, newdata = clean_data)
+mse2 <- mean((clean_data$Fire_Nofire - predictions)^2)
+print(mse2)
+
+#support Vector machine algorithm
+#install.packages("e1071")
+library(e1071)
+excluded_columns <- c("Latitude1", "Longitude1", "Ref", "fuel")
+data <- wildfiredata2with3[, !(names(wildfiredata2with3) %in% excluded_columns)]
+set.seed(123)  # Set seed for reproducibility
+indices <- sample(1:nrow(data), size = 0.7 * nrow(data))
+train_data <- data[indices, ]
+test_data <- data[-indices, ]
+svm_model <- svm(Fire_Nofire ~ ., data = train_data, kernel = "linear", cost = 1)
+predictions <- predict(svm_model, newdata = test_data[, -1])
+conf_matrix <- table(predictions, test_data$Fire_Nofire)
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+#print(conf_matrix)
+print(accuracy)
+summary(conf_matrix)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
